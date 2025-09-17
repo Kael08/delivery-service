@@ -1,21 +1,29 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RestaurantsModule } from './restaurants/restaurants.module';
-import { RestaurantEntity } from './restaurants/restaurant.entity';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { DeliveryModule } from './delivery/delivery.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: '5567',
-      database: 'delivery-service',
-      entities: [RestaurantEntity],
-      synchronize: true,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
     }),
-    RestaurantsModule,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: configService.get<string>('DB_TYPE') as 'postgres',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
+        entities: [], 
+        synchronize: true,
+      }),
+      inject: [ConfigService],
+    }),
+    DeliveryModule,
   ],
   controllers: [],
   providers: [],

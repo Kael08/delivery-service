@@ -1,0 +1,13 @@
+.env example
+
+# PostgreSQL configuration
+DB_TYPE=
+DB_HOST=
+DB_PORT=
+DB_USERNAME=
+DB_PASSWORD=
+DB_DATABASE=
+
+#RELOG API configuration
+RELOG_API_URL=
+RELOG_API_KEY=
