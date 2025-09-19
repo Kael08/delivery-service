@@ -26,6 +26,7 @@ export class DeliveryService {
     async createApplication(clientId: string): Promise<string> {
         let clientResponse: ClientResponse
 
+        // Получаем данные клиента
         try {
             const response = await firstValueFrom(
                 this.httpService.get(this.apiUrl+`/api/v3/clients/${clientId}`, {
@@ -42,6 +43,7 @@ export class DeliveryService {
             throw new Error(`Не удалось получить данные клиента`);
         }
 
+        // Создаем заявку
         let applicationResponse: ApplicationResponse
 
         try {
@@ -129,7 +131,11 @@ export class DeliveryService {
             throw new Error('Не удалось создать заявку')
         }
 
-        return applicationResponse._id
+        const applicationId=applicationResponse.data._id
+
+        
+
+        return applicationResponse.data._id
     }
 
     generateExternalId(): string {
