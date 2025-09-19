@@ -8,14 +8,6 @@ export class DeliveryController {
         private readonly deliveryService:DeliveryService
     ) {}
 
-
-    @Get('hello-world')
-    async helloWorld(){
-        return {
-            data:'hello-world'
-        }
-    }
-
     @Post()
     async startDelivery(@Body() dto: CreateDeliveryDto) {
         const client = await this.deliveryService.createApplication(dto.clientId)
