@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ClientResponse } from './interfaces/client.interface'
+import { ClientDataMin, AddressMin, ClientResponse } from './interfaces/client.interface'
 import { firstValueFrom } from 'rxjs';
 import { ApplicationResponse } from './interfaces/application.interface'
 import { generateTimePeriods } from './interfaces/timePeriods.inteface';
@@ -30,25 +30,47 @@ export class DeliveryService {
         this.relogCompanyId=this.configService.get<string>('RELOG_COMPANY_ID') || ''
     }
 
-    async createApplication(clientId: string): Promise<string> {
-        let clientResponse: ClientResponse
+    async createApplication(clientName: string, address: string,clientPhone: string = '', 
+        details: string ='', commentary: string ='',domofon: string ='',flat: string ='',floor: string ='',
+        porch: string =''): Promise<string> {
+        //async createApplication(clientId:string): Promise<string> {
+
+        let clientData: ClientDataMin = {
+            name: clientName,
+            isSendEmail: true,
+            isSendSMS: true,
+            addresses: [{
+                address: address,
+                details: details,
+                commentary: commentary,
+                domofon: domofon,
+                flat: flat,
+                floor: floor,
+                porch: porch,
+            }],
+            phone: clientPhone,
+        }
+
+        //let clientResponse: ClientResponse
 
         // Получаем данные клиента
-        try {
-            const response = await firstValueFrom(
-                this.httpService.get(this.apiUrl+`/api/v3/clients/${clientId}`, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'api-key':this.apiKey
-                    }
-                })
-            )
+        // try {
+        //     const response = await firstValueFrom(
+        //         this.httpService.get(this.apiUrl+`/api/v3/clients/${clientId}`, {
+        //             headers: {
+        //                 'Content-Type': 'application/json',
+        //                 'api-key':this.apiKey
+        //             }
+        //         })
+        //     )
 
-            clientResponse=response.data as ClientResponse
-        } catch(error){
-            this.logger.error(`Не удалось получить данные клиента`);
-            throw new Error(`Не удалось получить данные клиента`);
-        }
+        //     clientResponse=response.data as ClientResponse
+        // } catch(error){
+        //     this.logger.error(`Не удалось получить данные клиента`);
+        //     throw new Error(`Не удалось получить данные клиента`);
+        // }
+
+
 
         // Создаем заявку
         let applicationResponse: ApplicationResponse
@@ -73,7 +95,8 @@ export class DeliveryService {
                 ]
             }
 
-            const addressTo: Address = clientResponse.data.addresses[0]
+            const addressTo: AddressMin = clientData.addresses[0]
+            //const addressTo: Address=clientResponse.data.addresses[0]
 
             const good: Good = {
                 code: "1",
@@ -96,7 +119,7 @@ export class DeliveryService {
             const payload = {
                 externalId: externalId,
                 customId: `app-${externalId}`,
-                client: clientResponse.data,
+                client: clientData,
                 price: 0,
                 ...generateTimePeriods(),
                 addressFrom,
@@ -123,7 +146,7 @@ export class DeliveryService {
                 qrUrl: ''
             }
 
-            console.log(payload)
+            //console.log(payload)
             const response = await firstValueFrom(
                 this.httpService.post(this.apiUrl+`/api/v3/applications/sync`,payload, {
                     headers: {
@@ -140,6 +163,7 @@ export class DeliveryService {
         }
 
         const applicationId=applicationResponse.data._id
+        const clientId: string = applicationResponse.data.client._id
 
         // Получение курьеров
         const couriersIds= await this.selectCourier()
@@ -154,17 +178,14 @@ export class DeliveryService {
             apps: [applicationId],
             couriers: couriersIds,
             params: {
-                routingTimeWindow: {
-                    start: 1758225600,
-                    end: 1758308340
-                },
+                routingTimeWindow: this.generateRoutingTimeWindow(),
                 algorithmName: 'Vroom',
                 useGeozoneAlgorithm: false,
                 selectedGeozoneGroup: 'vWJhbdgZ4TpvkH8A3',
                 tailStorage: true,
                 considerWeight: false,
                 considerVolume: false,
-                startPoint: 'depot',
+                startPoint: 'courier',
                 uniformDistribution: 'num_tasks',
                 uniformDistributionFactor: 10,
                 optimizationConfig: 'optimizeDistance',
@@ -202,9 +223,10 @@ export class DeliveryService {
                 actionType: 'planning',
             },
         };
-
+        //console.log(planningPayload)
         try {
             const planningResponse: PlanningResponse = await this.startPlanning(planningPayload);
+            
             await this.delay(5000);
             await this.buildPlannedData(planningResponse.jobId);
         } catch (error) {
@@ -333,5 +355,17 @@ export class DeliveryService {
             this.logger.error(`Не удалось назнаить курьера на планирование`)
             throw new Error(`Не удалось назнаить курьера на планирование`)
         }
+    }
+
+    generateRoutingTimeWindow(date: Date = new Date()): { start: number; end: number } {
+        // Устанавливаем начало дня (08:00 UTC)
+        const startDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 8, 0, 0));
+        // Устанавливаем конец следующего дня (07:39 UTC)
+        const endDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1, 7, 39, 0));
+        
+        return {
+            start: Math.floor(startDate.getTime() / 1000), // UNIX timestamp в секундах
+            end: Math.floor(endDate.getTime() / 1000),
+        };
     }
 }

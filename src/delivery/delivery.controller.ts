@@ -10,7 +10,10 @@ export class DeliveryController {
 
     @Post()
     async startDelivery(@Body() dto: CreateDeliveryDto) {
-        const client = await this.deliveryService.createApplication(dto.clientId)
-        return { status: 'success', client}
+        const client = await this.deliveryService.createApplication(dto.clientName, dto.address, dto.clientPhone, dto.details,
+            dto.commentary, dto.domofon, dto.flat, dto.floor, dto.porch
+        )
+        //const client = await this.deliveryService.createApplication(dto.clientId)
+        return { status: 'success' }
     }
 }

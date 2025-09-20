@@ -42,3 +42,21 @@ export interface ClientResponse {
   _id: string;
   data: ClientData;
 }
+
+export interface AddressMin {
+  address: string;
+  details: string;
+  commentary: string;
+  domofon: string;
+  flat: string;
+  floor: string;
+  porch: string;
+}
+
+export interface ClientDataMin {
+  name: string
+  isSendEmail: boolean
+  isSendSMS: boolean
+  addresses: AddressMin[]
+  phone:string
+}
